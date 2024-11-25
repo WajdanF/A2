@@ -103,6 +103,13 @@ function displayPlaces(placeList) {
             <h3>${place.name}</h3>
             <p>${place.description}</p>
         `;
+        // Delete Button
+        let deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.onclick = () => deletePlace(place.id);
+        card.appendChild(deleteBtn);
+
         // Favorite Button
         let favBtn = document.createElement('button');
         favBtn.className = 'icon-btn favorite-btn';
@@ -134,7 +141,22 @@ function viewPlace(id) {
     content.innerHTML = '';
     let card = document.createElement('div');
     card.className = 'place-card';
-    card.innerHTML = `
+
+    // // Delete Button
+    // let deleteBtn = document.createElement('button');
+    // deleteBtn.className = 'delete-btn';
+    // deleteBtn.innerHTML = '🗑️';
+    // deleteBtn.onclick = () => deletePlace(id);
+    // card.appendChild(deleteBtn);
+
+    // Calculate average rating
+    let averageRating = 0;
+    if (place.reviews.length > 0) {
+        averageRating = place.reviews.reduce((sum, review) => sum + review.rating, 0) / place.reviews.length;
+        averageRating = averageRating.toFixed(1);
+    }
+
+    card.innerHTML += `
         <h2>${place.name}</h2>
         <p>${place.description}</p>
         <p><strong>Location:</strong> ${place.location}</p>
@@ -142,14 +164,33 @@ function viewPlace(id) {
         <p><strong>Crowdedness:</strong> ${place.crowdedness}</p>
         <p><strong>Proximity to Food:</strong> ${place.proximityToFood}</p>
         <p><strong>Type:</strong> ${place.indoorOutdoor}</p>
+        <p><strong>Average Rating:</strong> ${averageRating} ★ (${place.reviews.length} reviews)</p>
         <button class="btn" onclick="toggleFavorite(${place.id})">${favorites.includes(place.id) ? 'Unfavorite' : 'Add to Favorites'}</button>
         <button class="btn" onclick="toggleVisited(${place.id})">${visited.includes(place.id) ? 'Unmark Visited' : 'Mark as Visited'}</button>
-        <h3>Reviews</h3>
-        <div id="reviews">
-            ${place.reviews.map(review => `<p>${review}</p>`).join('')}
+        <div class="review-header">
+            <h3>Add a Review</h3>
+        </div>
+        <div class="star-rating">
+            <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+            <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+            <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+            <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+            <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
         </div>
         <textarea id="reviewText" placeholder="Add a review"></textarea>
         <button class="btn" onclick="addReview(${place.id})">Submit Review</button>
+        <div class="review-header">
+            <h3>Reviews</h3>
+        </div>
+        
+        <div id="reviews">
+            ${place.reviews.map(review => `
+                <div class="review-item">
+                    <p><strong>${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</strong></p>
+                    <p>${review.text}</p>
+                </div>
+            `).join('')}
+        </div>
     `;
     content.appendChild(card);
 }
@@ -176,14 +217,30 @@ function toggleVisited(id) {
 
 function addReview(id) {
     let text = document.getElementById('reviewText').value;
-    if (text) {
+    let ratingElement = document.querySelector('input[name="rating"]:checked');
+    if (text && ratingElement) {
+        let rating = parseInt(ratingElement.value);
         let place = places.find(p => p.id === id);
-        place.reviews.push(text);
+        place.reviews.push({
+            text,
+            rating
+        });
         document.getElementById('reviewText').value = '';
+        ratingElement.checked = false;
         saveData();
         viewPlace(id);
     } else {
-        alert('Please write a review');
+        alert('Please provide a review and a rating');
+    }
+}
+
+function deletePlace(id) {
+    if (confirm('Are you sure you want to delete this place?')) {
+        places = places.filter(place => place.id !== id);
+        favorites = favorites.filter(fid => fid !== id);
+        visited = visited.filter(vid => vid !== id);
+        saveData();
+        showPage('home');
     }
 }
 
